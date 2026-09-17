@@ -1,9 +1,11 @@
-للتطبيق الضعيف (vulnerable-app/requirements.txt):
-Text
+## (vulnerable-app/requirements.txt):
+
+
 Flask==3.0.3
 Werkzeug==3.0.3
-للتطبيق المصلح (patched-app/requirements.txt):
-Text
+## (patched-app/requirements.txt):
+
+
 Flask==3.0.3
 Werkzeug==3.0.3
 MarkupSafe==2.1.5
