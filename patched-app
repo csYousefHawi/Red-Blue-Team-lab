@@ -1,0 +1,140 @@
+from flask import Flask, request, render_template_string
+from markupsafe import escape
+import os
+import sqlite3
+import subprocess
+
+app = Flask(__name__)
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# ========== قاعدة البيانات ==========
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'users.db')
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    return conn
+
+def init_db():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER, username TEXT, password TEXT)')
+    c.execute("INSERT OR IGNORE INTO users VALUES (1, 'admin', 'password123')")
+    conn.commit()
+    conn.close()
+
+@app.route('/')
+def index():
+    return '''
+    <h1>🔒 Secure Web App (Patched)</h1>
+    <p>This app is fixed — vulnerabilities have been patched.</p>
+    <ul>
+        <li><a href="/upload">📁 File Upload</a></li>
+        <li><a href="/ping">💻 Ping Tool</a></li>
+        <li><a href="/search">🔍 Search</a></li>
+        <li><a href="/login">🔐 Login</a></li>
+    </ul>
+    '''
+
+# ========== FIX 1: File Upload (Validation) ==========
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        file = request.files['file']
+        if file and allowed_file(file.filename):
+            # Sanitize filename
+            safe_filename = os.path.basename(file.filename)
+            filepath = os.path.join(UPLOAD_FOLDER, safe_filename)
+            file.save(filepath)
+            return f"<h2>✅ File uploaded: {escape(safe_filename)}</h2><br><a href='/'>Back</a>"
+        else:
+            return "<h2>❌ Invalid file type. Only images and PDF allowed.</h2><br><a href='/upload'>Try Again</a>"
+    return '''
+    <h2>📁 Upload File</h2>
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="file"><br><br>
+        <input type="submit" value="Upload">
+    </form>
+    <br><a href='/'>Back</a>
+    '''
+
+# ========== FIX 2: OS Command Injection (subprocess with list) ==========
+@app.route('/ping', methods=['GET', 'POST'])
+def ping():
+    if request.method == 'POST':
+        host = request.form['host']
+        # Validate: allow only IP addresses or hostnames (alphanumeric, dot, dash)
+        import re
+        if not re.match(r'^[a-zA-Z0-9\.\-]+$', host):
+            return "<h2>❌ Invalid host format</h2><br><a href='/ping'>Try Again</a>"
+        try:
+            result = subprocess.run(
+                ['ping', '-c', '1', host],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            output = escape(result.stdout + result.stderr)
+            return f"<h2>Ping Result</h2><pre>{output}</pre><br><a href='/'>Back</a>"
+        except Exception as e:
+            return f"<h2>Error: {escape(str(e))}</h2><br><a href='/ping'>Try Again</a>"
+    return '''
+    <h2>💻 Ping Tool</h2>
+    <form method="post">
+        Host: <input type="text" name="host" placeholder="8.8.8.8"><br><br>
+        <input type="submit" value="Ping">
+    </form>
+    <br><a href='/'>Back</a>
+    '''
+
+# ========== FIX 3: XSS (escape output) ==========
+@app.route('/search')
+def search():
+    query = request.args.get('q', '')
+    safe_query = escape(query)
+    return f'''
+    <h2>🔍 Search</h2>
+    <form>
+        <input type="text" name="q" value="{safe_query}">
+        <input type="submit" value="Search">
+    </form>
+    <p>Results for: {safe_query}</p>
+    <br><a href='/'>Back</a>
+    '''
+
+# ========== FIX 4: SQL Injection (parameterized queries) ==========
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        conn = get_db()
+        cursor = conn.cursor()
+        # Use parameterized query
+        cursor.execute(
+            "SELECT * FROM users WHERE username=? AND password=?",
+            (username, password)
+        )
+        user = cursor.fetchone()
+        if user:
+            safe_username = escape(username)
+            return f"<h2>✅ Welcome, {safe_username}!</h2><br><a href='/'>Back</a>"
+        return "<h2>❌ Invalid credentials</h2><br><a href='/login'>Try Again</a>"
+    return '''
+    <h2>🔐 Login</h2>
+    <form method="post">
+        Username: <input type="text" name="username"><br><br>
+        Password: <input type="password" name="password"><br><br>
+        <input type="submit" value="Login">
+    </form>
+    <br><a href='/'>Back</a>
+    '''
+
+if __name__ == '__main__':
+    init_db()
+    app.run(host='0.0.0.0', port=5000, debug=True)
