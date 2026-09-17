@@ -1,0 +1,10 @@
+للتطبيق الضعيف (vulnerable-app/requirements.txt):
+Text
+Flask==3.0.3
+Werkzeug==3.0.3
+للتطبيق المصلح (patched-app/requirements.txt):
+Text
+Flask==3.0.3
+Werkzeug==3.0.3
+MarkupSafe==2.1.5
+python-magic==0.4.27
