@@ -1,8 +1,10 @@
-&lt;p align="center"&gt;
-  &lt;h1 align="center"&gt;🔴 Red Team vs Blue Team Lab&lt;/h1&gt;
-  &lt;p align="center"&gt;A Complete Cybersecurity Attack-Defense Lifecycle Project&lt;/p&gt;
-&lt;/p&gt;
+<div align="center">
 
+# 🔴 Red Team vs Blue Team Lab
+
+A Complete Cybersecurity Attack-Defense Lifecycle Project
+
+</div>
 ---
 
 ## 📋 Table of Contents
