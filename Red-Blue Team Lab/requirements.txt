@@ -1,9 +1,9 @@
-##(vulnerable-app/requirements.txt):
+(vulnerable-app/requirements.txt):
 
 Flask==3.0.3
 Werkzeug==3.0.3
 
-##(patched-app/requirements.txt):
+(patched-app/requirements.txt):
 
 Flask==3.0.3
 Werkzeug==3.0.3
